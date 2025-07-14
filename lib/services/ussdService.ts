@@ -1,6 +1,25 @@
 import { prisma, type UssdSession } from '../database/models';
 import { paymentService } from './paymentService';
 
+interface UssdResponse {
+  USERID: string | null;
+  MSISDN: string;
+  USERDATA: string | null;
+  MSG: string;
+  MSGTYPE: boolean;
+}
+
+interface TransactionData {
+  flow?: string;
+  candidate_id?: number;
+  candidate_name?: string;
+  candidate_code?: string;
+  vote_count?: number;
+  amount?: number;
+  donation_amount?: number;
+  network?: string;
+}
+
 export class UssdService {
   async processInput(
     sessionId: string,
@@ -9,7 +28,7 @@ export class UssdService {
     userData: string,
     msgType: boolean,
     network: string
-  ): Promise<any> {
+  ): Promise<UssdResponse> {
     try {
       console.log('USSD Input:', { sessionId, userId, msisdn, userData, msgType, network });
 
@@ -82,14 +101,14 @@ export class UssdService {
     }
   }
 
-  private mainMenu(session?: UssdSession): any {
+  private mainMenu(session?: UssdSession): UssdResponse {
     if (session) {
       return {
         "USERID": session.userId,
         "MSISDN": session.msisdn,
         "USERDATA": session.userData,
         "MSG": "Welcome to Borbor Carnival 25\n1. Vote\n2. Donate",
-        "MSGTYPE": session.msgType
+        "MSGTYPE": session.msgType || false
       };
     }
     return {
@@ -101,8 +120,8 @@ export class UssdService {
     };
   }
 
-  private async handleMainMenu(input: string, session: UssdSession): Promise<any> {
-    const transactionData = session.transactionData as any || {};
+  private async handleMainMenu(input: string, session: UssdSession): Promise<UssdResponse> {
+    const transactionData = (session.transactionData as unknown as TransactionData) || {} as TransactionData;
 
     switch (input) {
       case '1':
@@ -119,7 +138,7 @@ export class UssdService {
           "MSISDN": session.msisdn,
           "USERDATA": session.userData,
           "MSG": "Enter group code number:",
-          "MSGTYPE": session.msgType
+          "MSGTYPE": session.msgType || false
         };
 
       case '2':
@@ -138,7 +157,7 @@ export class UssdService {
     }
   }
 
-  private async handleEnterGroupCode(input: string, session: UssdSession): Promise<any> {
+  private async handleEnterGroupCode(input: string, session: UssdSession): Promise<UssdResponse> {
     const groupCode = input.trim();
 
     if (!groupCode) {
@@ -147,7 +166,7 @@ export class UssdService {
         "MSISDN": session.msisdn,
         "USERDATA": session.userData,
         "MSG": "Invalid code. Please try again:",
-        "MSGTYPE": session.msgType
+        "MSGTYPE": session.msgType || false
       };
     }
 
@@ -165,12 +184,12 @@ export class UssdService {
         "MSISDN": session.msisdn,
         "USERDATA": session.userData,
         "MSG": "Invalid code. Please try again:",
-        "MSGTYPE": session.msgType
+        "MSGTYPE": session.msgType || false
       };
     }
 
     // Store candidate in session
-    const transactionData = session.transactionData as any || {};
+    const transactionData = (session.transactionData as unknown as TransactionData) || {} as TransactionData;
     transactionData.candidate_id = candidate.id;
     transactionData.candidate_name = candidate.name;
     transactionData.candidate_code = candidate.code;
@@ -180,7 +199,7 @@ export class UssdService {
       data: {
         menuState: 'ENTER_VOTE_COUNT',
         prevMenuState: 'ENTER_GROUP_CODE',
-        transactionData: transactionData
+        transactionData: JSON.parse(JSON.stringify(transactionData))
       }
     });
 
@@ -189,11 +208,11 @@ export class UssdService {
       "MSISDN": session.msisdn,
       "USERDATA": session.userData,
       "MSG": `You have selected: ${candidate.name}\nEnter number of votes (GH₵1 per vote):`,
-      "MSGTYPE": session.msgType
+      "MSGTYPE": session.msgType || false
     };
   }
 
-  private async handleEnterVoteCount(input: string, session: UssdSession): Promise<any> {
+  private async handleEnterVoteCount(input: string, session: UssdSession): Promise<UssdResponse> {
     const trimmedInput = input.trim();
 
     const voteCount = Number(trimmedInput);
@@ -209,7 +228,7 @@ export class UssdService {
         "MSISDN": session.msisdn,
         "USERDATA": session.userData,
         "MSG": "Invalid number. Please enter a valid number of votes:",
-        "MSGTYPE": session.msgType
+        "MSGTYPE": session.msgType || false
       };
     }
 
@@ -219,11 +238,11 @@ export class UssdService {
         "MSISDN": session.msisdn,
         "USERDATA": session.userData,
         "MSG": "Maximum 100 votes allowed. Please enter a valid number:",
-        "MSGTYPE": session.msgType
+        "MSGTYPE": session.msgType || false
       };
     }
 
-    const transactionData = session.transactionData as any || {};
+    const transactionData = (session.transactionData as unknown as TransactionData) || {} as TransactionData;
     transactionData.vote_count = voteCount;
     transactionData.amount = voteCount; // GH₵1 per vote
 
@@ -232,7 +251,7 @@ export class UssdService {
       data: {
         menuState: 'CONFIRM_VOTE_PAYMENT',
         prevMenuState: 'ENTER_VOTE_COUNT',
-        transactionData: transactionData
+        transactionData: JSON.parse(JSON.stringify(transactionData))
       }
     });
 
@@ -241,12 +260,12 @@ export class UssdService {
       "MSISDN": session.msisdn,
       "USERDATA": session.userData,
       "MSG": `Confirm Payment:\nCandidate: ${transactionData.candidate_name}\nVotes: ${voteCount}\nAmount: GH₵${voteCount}\n\n1. Confirm\n2. Cancel`,
-      "MSGTYPE": session.msgType
+      "MSGTYPE": session.msgType || false
     };
   }
 
-  private async handleConfirmVotePayment(input: string, session: UssdSession): Promise<any> {
-    const transactionData = session.transactionData as any || {};
+  private async handleConfirmVotePayment(input: string, session: UssdSession): Promise<UssdResponse> {
+    const transactionData = (session.transactionData as unknown as TransactionData) || {} as TransactionData;
 
     switch (input) {
       case '1':
@@ -260,10 +279,10 @@ export class UssdService {
 
         const vote = await prisma.vote.create({
           data: {
-            candidateId: transactionData.candidate_id,
+            candidateId: transactionData.candidate_id || 0,
             voterPhone: session.msisdn,
-            numberOfVotes: transactionData.vote_count,
-            amountPaid: transactionData.amount,
+            numberOfVotes: transactionData.vote_count || 0,
+            amountPaid: transactionData.amount || 0,
             transactionId: this.generateTransactionId(session.sessionId),
             transactionStatus: 'pending',
             sessionId: session.sessionId
@@ -294,20 +313,22 @@ export class UssdService {
           "MSGTYPE": false
         };
 
+      default:
+        return this.endSession('Invalid selection', session);
     }
   }
 
-  private async handleEnterMomoPin(input: string, session: UssdSession): Promise<any> {
+  private async handleEnterMomoPin(input: string, session: UssdSession): Promise<UssdResponse> {
 
-    const transactionData = session.transactionData as any || {};
+    const transactionData = (session.transactionData as unknown as TransactionData) || {} as TransactionData;
 
     // Create vote record
     const vote = await prisma.vote.create({
       data: {
-        candidateId: transactionData.candidate_id,
+        candidateId: transactionData.candidate_id || 0,
         voterPhone: session.msisdn,
-        numberOfVotes: transactionData.vote_count,
-        amountPaid: transactionData.amount,
+        numberOfVotes: transactionData.vote_count || 0,
+        amountPaid: transactionData.amount || 0,
         transactionId: this.generateTransactionId(session.sessionId),
         transactionStatus: 'pending',
         sessionId: session.sessionId
@@ -318,14 +339,7 @@ export class UssdService {
     try {
       await paymentService.processVotePayment(session, vote);
 
-      // return {
-      //   "USERID": session.userId,
-      //   "MSISDN": session.msisdn,
-      //   "USERDATA": session.userData,
-      //   "MSG": `You will receive a notification to confirm payment or dial ${transactionData.network === 'MTN'? '*170#':'*110#'}  to approve payment.`,
-      //   // "MSG": `You will receive a notification to confirm payment or dial ${transactionData.network === 'MTN'? '*170#':'*110#'}  to approve payment.\n\nThank you for voting ${transactionData.vote_count} time(s) for the ${transactionData.candidate_name}.`,
-      //   "MSGTYPE": session.msgType
-      // };
+      return this.endSession('Payment processing initiated. You will receive a confirmation shortly.');
     } catch (error) {
       console.error('Payment error:', error);
 
@@ -342,7 +356,7 @@ export class UssdService {
     }
   }
 
-  private async handleDonateFlow(input: string, session: UssdSession): Promise<any> {
+  private async handleDonateFlow(input: string, session: UssdSession): Promise<UssdResponse> {
     await prisma.ussdSession.update({
       where: { sessionId: session.sessionId },
       data: {
@@ -356,11 +370,11 @@ export class UssdService {
       "MSISDN": session.msisdn,
       "USERDATA": session.userData,
       "MSG": "Enter donation amount (GH₵):",
-      "MSGTYPE": session.msgType
+      "MSGTYPE": session.msgType || false
     };
   }
 
-  private async handleEnterDonationAmount(input: string, session: UssdSession): Promise<any> {
+  private async handleEnterDonationAmount(input: string, session: UssdSession): Promise<UssdResponse> {
     const amount = parseFloat(input.trim());
 
     if (isNaN(amount) || amount <= 0) {
@@ -369,7 +383,7 @@ export class UssdService {
         "MSISDN": session.msisdn,
         "USERDATA": session.userData,
         "MSG": "Invalid amount. Please enter a valid donation amount (GH₵):",
-        "MSGTYPE": session.msgType
+        "MSGTYPE": session.msgType || false
       };
     }
 
@@ -379,11 +393,11 @@ export class UssdService {
         "MSISDN": session.msisdn,
         "USERDATA": session.userData,
         "MSG": "Maximum donation amount is GH₵1000. Please enter a valid amount:",
-        "MSGTYPE": session.msgType
+        "MSGTYPE": session.msgType || false
       };
     }
 
-    const transactionData = session.transactionData as any || {};
+    const transactionData = (session.transactionData as unknown as TransactionData) || {} as TransactionData;
     transactionData.donation_amount = amount;
 
     await prisma.ussdSession.update({
@@ -391,7 +405,7 @@ export class UssdService {
       data: {
         menuState: 'CONFIRM_DONATION',
         prevMenuState: 'ENTER_DONATION_AMOUNT',
-        transactionData: transactionData
+        transactionData: JSON.parse(JSON.stringify(transactionData))
       }
     });
 
@@ -400,12 +414,12 @@ export class UssdService {
       "MSISDN": session.msisdn,
       "USERDATA": session.userData,
       "MSG": `Confirm Donation:\nAmount: GH₵${amount}\n\n1. Confirm\n2. Cancel`,
-      "MSGTYPE": session.msgType
+      "MSGTYPE": session.msgType || false
     };
   }
 
-  private async handleConfirmDonation(input: string, session: UssdSession): Promise<any> {
-    const transactionData = session.transactionData as any || {};
+  private async handleConfirmDonation(input: string, session: UssdSession): Promise<UssdResponse> {
+    const transactionData = (session.transactionData as unknown as TransactionData) || {} as TransactionData;
 
     switch (input) {
       case '1':
@@ -429,12 +443,12 @@ export class UssdService {
           "MSISDN": session.msisdn,
           "USERDATA": session.userData,
           "MSG": "CON Invalid selection. Please choose:\n1. Confirm\n2. Cancel",
-          "MSGTYPE": session.msgType
+          "MSGTYPE": session.msgType || false
         };
     }
   }
 
-  private async handleBackNavigation(session: UssdSession): Promise<any> {
+  private async handleBackNavigation(session: UssdSession): Promise<UssdResponse> {
     if (!session.prevMenuState) {
       return this.mainMenu(session);
     }
@@ -453,14 +467,14 @@ export class UssdService {
           "MSISDN": session.msisdn,
           "USERDATA": session.userData,
           "MSG": "CON Enter group code number:",
-          "MSGTYPE": session.msgType
+          "MSGTYPE": session.msgType || false
         };
       default:
         return this.mainMenu(session);
     }
   }
 
-  private endSession(message: string, session?: UssdSession): any {
+  private endSession(message: string, session?: UssdSession): UssdResponse {
     if (session) {
       return {
         "USERID": session.userId,

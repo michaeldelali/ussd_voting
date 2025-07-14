@@ -1,5 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/database/models';
+import { Prisma } from '@prisma/client';
+
+interface DailyDonation {
+  date: Date;
+  daily_amount: number;
+  daily_count: number;
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -8,7 +15,7 @@ export async function GET(request: NextRequest) {
     const endDate = searchParams.get('endDate');
 
     // Build where conditions
-    const whereConditions: any = {
+    const whereConditions: Prisma.DonationWhereInput = {
       transactionStatus: 'success'
     };
 
@@ -26,8 +33,7 @@ export async function GET(request: NextRequest) {
         amount: true
       },
       _count: {
-        id: true,
-        donorPhone: true
+        _all: true
       },
       _avg: {
         amount: true
@@ -47,7 +53,7 @@ export async function GET(request: NextRequest) {
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-    const dailyDonations = await prisma.$queryRaw`
+    const dailyDonations = await prisma.$queryRaw<DailyDonation[]>`
       SELECT 
         DATE(created_at) as date,
         SUM(amount) as daily_amount,
@@ -83,19 +89,20 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       summary: {
-        total_amount: donationStats._sum.amount || 0,
-        total_donations: donationStats._count.id || 0,
+        total_amount: donationStats._sum?.amount || 0,
+        total_donations: donationStats._count?._all || 0,
         unique_donors: uniqueDonorsCount.length || 0,
-        average_donation: donationStats._avg.amount || 0
+        average_donation: donationStats._avg?.amount || 0
       },
       trends: dailyDonations,
       recent_donations: maskedRecentDonations
     });
 
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Donation analytics error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
-      { error: 'Failed to fetch donation analytics' },
+      { error: 'Failed to fetch donation analytics', details: errorMessage },
       { status: 500 }
     );
   }

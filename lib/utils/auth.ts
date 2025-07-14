@@ -66,6 +66,7 @@ export class AuthService {
     try {
       return jwt.verify(token, this.jwtSecret) as JWTPayload;
     } catch (error) {
+      console.error('Token verification error:', error);
       return null;
     }
   }

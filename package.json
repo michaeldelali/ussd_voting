@@ -7,7 +7,6 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "db:seed": "npx ts-node --project tsconfig.scripts.json scripts/seed.ts",
     "db:setup": "mysql -u carnival -p < scripts/create-tables.sql && npm run db:seed",
     "create-user": "npx ts-node --project tsconfig.scripts.json scripts/create-user.ts"
   },

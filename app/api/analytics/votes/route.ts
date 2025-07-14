@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/database/models';
+import { Prisma } from '@prisma/client';
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,7 +11,7 @@ export async function GET(request: NextRequest) {
     const candidateId = searchParams.get('candidateId');
 
     // Build where conditions
-    const whereConditions: any = {
+    const whereConditions: Prisma.VoteWhereInput = {
       transactionStatus: 'success'
     };
 
@@ -89,10 +90,11 @@ export async function GET(request: NextRequest) {
       }
     });
 
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Vote analytics error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
-      { error: 'Failed to fetch vote analytics' },
+      { error: 'Failed to fetch vote analytics', details: errorMessage },
       { status: 500 }
     );
   }

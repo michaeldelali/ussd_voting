@@ -1,5 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/database/models';
+import { Prisma} from '@prisma/client';
+
+interface TransactionItem {
+  id: number;
+  type: 'vote' | 'donation';
+  phone: string;
+  candidate_name: string | null;
+  candidate_code: string | null;
+  votes: number | null;
+  amount: number;
+  status: string;
+  transaction_id: string | null;
+  message: string | null;
+  created_at: Date;
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,13 +25,17 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = (page - 1) * limit;
 
-    let transactions: any[] = [];
+    let transactions: TransactionItem[] = [];
     let totalCount = 0;
 
-    // Build where conditions
-    const whereConditions: any = {};
+    // Build where conditions for votes and donations
+    const voteWhereConditions: Prisma.VoteWhereInput = {};
+    const donationWhereConditions: Prisma.DonationWhereInput = {};
+    
     if (status && status !== 'all') {
-      whereConditions.transactionStatus = status;
+      // Safe type assertion - status comes from query params and should match TransactionStatus enum
+      (voteWhereConditions as unknown as Record<string, unknown>).transactionStatus = status;
+      (donationWhereConditions as unknown as Record<string, unknown>).transactionStatus = status;
     }
 
     if (!type || type === 'all' || type === 'votes') {
@@ -30,7 +49,7 @@ export async function GET(request: NextRequest) {
             }
           }
         },
-        where: whereConditions,
+        where: voteWhereConditions,
         take: type === 'votes' ? limit : Math.ceil(limit / 2),
         skip: type === 'votes' ? offset : 0,
         orderBy: {
@@ -40,12 +59,12 @@ export async function GET(request: NextRequest) {
 
       // Get count for votes
       const voteCount = await prisma.vote.count({
-        where: whereConditions
+        where: voteWhereConditions
       });
 
-      const voteTransactions = voteQuery.map(vote => ({
+      const voteTransactions: TransactionItem[] = voteQuery.map(vote => ({
         id: vote.id,
-        type: 'vote',
+        type: 'vote' as const,
         phone: maskPhoneNumber(vote.voterPhone),
         candidate_name: vote.candidate?.name || 'Unknown',
         candidate_code: vote.candidate?.code || 'N/A',
@@ -66,7 +85,7 @@ export async function GET(request: NextRequest) {
     if (!type || type === 'all' || type === 'donations') {
       // Get donation transactions
       const donationQuery = await prisma.donation.findMany({
-        where: whereConditions,
+        where: donationWhereConditions,
         take: type === 'donations' ? limit : Math.ceil(limit / 2),
         skip: type === 'donations' ? offset : 0,
         orderBy: {
@@ -76,12 +95,12 @@ export async function GET(request: NextRequest) {
 
       // Get count for donations
       const donationCount = await prisma.donation.count({
-        where: whereConditions
+        where: donationWhereConditions
       });
 
-      const donationTransactions = donationQuery.map(donation => ({
+      const donationTransactions: TransactionItem[] = donationQuery.map(donation => ({
         id: donation.id,
-        type: 'donation',
+        type: 'donation' as const,
         phone: maskPhoneNumber(donation.donorPhone),
         candidate_name: null,
         candidate_code: null,
@@ -106,8 +125,8 @@ export async function GET(request: NextRequest) {
       
       // Get total count for all types
       const [voteCount, donationCount] = await Promise.all([
-        prisma.vote.count({ where: whereConditions }),
-        prisma.donation.count({ where: whereConditions })
+        prisma.vote.count({ where: voteWhereConditions }),
+        prisma.donation.count({ where: donationWhereConditions })
       ]);
       totalCount = voteCount + donationCount;
 
@@ -125,10 +144,11 @@ export async function GET(request: NextRequest) {
       }
     });
 
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Transaction analytics error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
-      { error: 'Failed to fetch transactions' },
+      { error: 'Failed to fetch transactions', details: errorMessage },
       { status: 500 }
     );
   }

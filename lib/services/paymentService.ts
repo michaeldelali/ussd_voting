@@ -1,5 +1,22 @@
 import axios from 'axios';
-import { prisma, type UssdSession, type Vote, type Donation } from '../database/models';
+import { prisma, type UssdSession, type Vote } from '../database/models';
+
+interface TransactionData {
+  amount?: number;
+  vote_count?: number;
+  candidate_name?: string;
+  donation_amount?: number;
+}
+
+interface PaymentCallbackData {
+  status?: string;
+  transaction_status?: string;
+  message?: string;
+  description?: string;
+  merchant_data?: string;
+  subscriber_number?: string;
+  total_amount?: string;
+}
 
 export class PaymentService {
   private generateUniqueNumber(sessionId: string): string {
@@ -9,7 +26,16 @@ export class PaymentService {
     return (sessionPart + timestamp + randomPart).slice(0, 14);
   }
 
-  async processVotePayment(session: UssdSession, vote: Vote): Promise<void> {
+  private networkMap = {
+      MTN: 'MTN',
+      VODAFONE: 'VDF',
+      TELECEL: 'VDF',
+      AIRTEL: 'ATL',
+      AIRTELTIGO: 'ATL',
+      TIGO: 'TGO',
+    } as const;
+
+  async processVotePayment(session: UssdSession, vote: Vote): Promise<unknown> {
     const encodedCredentials = Buffer.from(
       `${process.env.PAYMENT_API_NAME}:${process.env.PAYMENT_API_KEY_PRO}`
     ).toString('base64');
@@ -18,19 +44,20 @@ export class PaymentService {
       'Content-Type': 'application/json',
       'Authorization': `Basic ${encodedCredentials}`,
       'Cache-Control': 'no-cache',
-      'request-id': session.sessionId
+      'request-id': Date.now().toString().padEnd(19, '0')
     };
 
-    const transactionData = session.transactionData as any || {};
+    const transactionData = (session.transactionData as unknown as TransactionData) || {} as TransactionData;
+    const network = this.networkMap[session.network as keyof typeof this.networkMap] || 'MTN';
 
     const paymentData = {
-      amount: transactionData.amount.toString(),
+      amount: (transactionData.amount || 1).toString(),
       processing_code: "000200",
       transaction_id: this.generateUniqueNumber(session.sessionId),
       desc: `Vote payment for Borbor Carnival 25 - ${transactionData.candidate_name}`,
       merchant_id: process.env.MERCHANT_ID,
       subscriber_number: session.msisdn,
-      "r-switch": session.network,
+      "r-switch": network,
       callback_url: process.env.PAYMENT_CALLBACK_URL,
       reference: "Borbor Carnival 25 Vote",
       merchant_data: JSON.stringify({
@@ -67,8 +94,10 @@ export class PaymentService {
       } else {
         throw new Error(`Payment failed with status: ${response.status}`);
       }
-    } catch (error: any) {
-      console.error('Vote payment error:', error.response?.data || error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorResponse = (error as { response?: { data?: unknown } })?.response?.data;
+      console.error('Vote payment error:', errorResponse || errorMessage);
       throw error;
     }
   }
@@ -82,17 +111,18 @@ export class PaymentService {
       'Content-Type': 'application/json',
       'Authorization': `Basic ${encodedCredentials}`,
       'Cache-Control': 'no-cache',
-      'request-id': session.sessionId
+      'request-id': Date.now().toString().padEnd(19, '0')
     };
 
-    const transactionData = session.transactionData as any || {};
+    const transactionData = (session.transactionData as unknown as TransactionData) || {} as TransactionData;
     const transactionId = this.generateUniqueNumber(session.sessionId);
+    const network = this.networkMap[session.network as keyof typeof this.networkMap] || 'MTN';
 
     // Create donation record
     const donation = await prisma.donation.create({
       data: {
         donorPhone: session.msisdn,
-        amount: transactionData.donation_amount,
+        amount: transactionData.donation_amount || 0,
         transactionId: transactionId,
         transactionStatus: 'pending',
         sessionId: session.sessionId
@@ -100,13 +130,13 @@ export class PaymentService {
     });
 
     const paymentData = {
-      amount: transactionData.donation_amount.toString(),
+      amount: (transactionData.donation_amount || 1).toString(),
       processing_code: "000200",
       transaction_id: transactionId,
       desc: "Donation for Borbor Carnival 25",
       merchant_id: process.env.MERCHANT_ID,
       subscriber_number: session.msisdn,
-      "r-switch": session.network,
+      "r-switch": network,
       callback_url: process.env.PAYMENT_CALLBACK_URL,
       reference: "Borbor Carnival 25 Donation",
       merchant_data: JSON.stringify({
@@ -138,8 +168,10 @@ export class PaymentService {
       } else {
         throw new Error(`Payment failed with status: ${response.status}`);
       }
-    } catch (error: any) {
-      console.error('Donation payment error:', error.response?.data || error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorResponse = (error as { response?: { data?: unknown } })?.response?.data;
+      console.error('Donation payment error:', errorResponse || errorMessage);
       
       // Update donation status to failed
       await prisma.donation.update({
@@ -154,9 +186,9 @@ export class PaymentService {
     }
   }
 
-  async handlePaymentCallback(callbackData: any): Promise<void> {
+  async handlePaymentCallback(callbackData: PaymentCallbackData): Promise<void> {
     try {
-      console.log('Payment callback received:', callbackData);
+      // console.log('Payment callback received:', callbackData);
 
       const merchantData = JSON.parse(callbackData.merchant_data || '{}');
       const transactionStatus = callbackData.status || callbackData.transaction_status;
@@ -170,7 +202,7 @@ export class PaymentService {
           await prisma.vote.update({
             where: { id: vote.id },
             data: {
-              transactionStatus: transactionStatus === 'success' ? 'success' : 'failed',
+              transactionStatus: transactionStatus === 'approved' ? 'success' : 'failed',
               transactionMessage: callbackData.message || callbackData.description || 'Payment processed'
             }
           });
@@ -210,7 +242,7 @@ export class PaymentService {
           await prisma.donation.update({
             where: { id: donation.id },
             data: {
-              transactionStatus: transactionStatus === 'success' ? 'success' : 'failed',
+              transactionStatus: transactionStatus === 'approved' ? 'success' : 'failed',
               transactionMessage: callbackData.message || callbackData.description || 'Payment processed'
             }
           });
