@@ -1,0 +1,94 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TransactionStatus {
+  pending
+  success
+  failed
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique @db.VarChar(255)
+  passwordHash String   @map("password_hash") @db.VarChar(255)
+  name         String   @db.VarChar(255)
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime? @default(now()) @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+model Candidate {
+  id          Int      @id @default(autoincrement())
+  name        String   @db.VarChar(255)
+  code        String   @unique @db.VarChar(10)
+  description String?  @db.Text
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime? @default(now()) @updatedAt @map("updated_at")
+
+  votes Vote[]
+
+  @@map("candidates")
+}
+
+model Vote {
+  id                 Int               @id @default(autoincrement())
+  candidateId        Int               @map("candidate_id")
+  voterPhone         String            @map("voter_phone") @db.VarChar(15)
+  numberOfVotes      Int               @map("number_of_votes")
+  amountPaid         Decimal           @map("amount_paid") @db.Decimal(10, 2)
+  transactionId      String            @unique @map("transaction_id") @db.VarChar(255)
+  transactionStatus  TransactionStatus @default(pending) @map("transaction_status")
+  transactionMessage String?           @map("transaction_message") @db.Text
+  sessionId          String            @map("session_id") @db.VarChar(255)
+  createdAt          DateTime          @default(now()) @map("created_at")
+  updatedAt          DateTime?         @default(now()) @updatedAt @map("updated_at")
+
+  candidate Candidate @relation(fields: [candidateId], references: [id])
+
+  @@map("votes")
+}
+
+model Donation {
+  id                 Int               @id @default(autoincrement())
+  donorPhone         String            @map("donor_phone") @db.VarChar(15)
+  amount             Decimal           @db.Decimal(10, 2)
+  transactionId      String            @unique @map("transaction_id") @db.VarChar(255)
+  transactionStatus  TransactionStatus @default(pending) @map("transaction_status")
+  transactionMessage String?           @map("transaction_message") @db.Text
+  sessionId          String            @map("session_id") @db.VarChar(255)
+  createdAt          DateTime          @default(now()) @map("created_at")
+  updatedAt          DateTime?         @default(now()) @updatedAt @map("updated_at")
+
+  @@map("donations")
+}
+
+model UssdSession {
+  sessionId       String   @id @map("session_id") @db.VarChar(255)
+  msisdn          String   @db.VarChar(15)
+  menuState       String   @map("menu_state") @db.VarChar(50)
+  prevMenuState   String?  @map("prev_menu_state") @db.VarChar(50)
+  transactionData Json?    @map("transaction_data")
+  userId          String?  @map("user_id") @db.VarChar(255)
+  network         String?  @db.VarChar(50)
+  msgType         Boolean? @map("msg_type") @default(false) // true or false
+  userData        String?  @map("user_data") @db.Text
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime? @default(now()) @updatedAt @map("updated_at")
+
+  @@map("ussd_sessions")
+}

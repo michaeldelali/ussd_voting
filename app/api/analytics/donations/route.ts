@@ -1,0 +1,107 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/database/models';
+
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
+
+    // Build where conditions
+    const whereConditions: any = {
+      transactionStatus: 'success'
+    };
+
+    if (startDate && endDate) {
+      whereConditions.createdAt = {
+        gte: new Date(startDate),
+        lte: new Date(endDate)
+      };
+    }
+
+    // Get donation analytics using Prisma aggregations
+    const donationStats = await prisma.donation.aggregate({
+      where: whereConditions,
+      _sum: {
+        amount: true
+      },
+      _count: {
+        id: true,
+        donorPhone: true
+      },
+      _avg: {
+        amount: true
+      }
+    });
+
+    // Get unique donors count
+    const uniqueDonorsCount = await prisma.donation.groupBy({
+      by: ['donorPhone'],
+      where: whereConditions,
+      _count: {
+        donorPhone: true
+      }
+    });
+
+    // Get donation trends (last 7 days)
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const dailyDonations = await prisma.$queryRaw`
+      SELECT 
+        DATE(created_at) as date,
+        SUM(amount) as daily_amount,
+        COUNT(id) as daily_count
+      FROM donations 
+      WHERE transaction_status = 'success' 
+        AND created_at >= ${sevenDaysAgo}
+      GROUP BY DATE(created_at)
+      ORDER BY DATE(created_at) ASC
+    `;
+
+    // Get recent successful donations
+    const recentDonations = await prisma.donation.findMany({
+      select: {
+        amount: true,
+        createdAt: true,
+        donorPhone: true
+      },
+      where: {
+        transactionStatus: 'success'
+      },
+      orderBy: {
+        createdAt: 'desc'
+      },
+      take: 10
+    });
+
+    // Mask phone numbers for privacy
+    const maskedRecentDonations = recentDonations.map(donation => ({
+      ...donation,
+      donor_phone: maskPhoneNumber(donation.donorPhone)
+    }));
+
+    return NextResponse.json({
+      summary: {
+        total_amount: donationStats._sum.amount || 0,
+        total_donations: donationStats._count.id || 0,
+        unique_donors: uniqueDonorsCount.length || 0,
+        average_donation: donationStats._avg.amount || 0
+      },
+      trends: dailyDonations,
+      recent_donations: maskedRecentDonations
+    });
+
+  } catch (error) {
+    console.error('Donation analytics error:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch donation analytics' },
+      { status: 500 }
+    );
+  }
+}
+
+function maskPhoneNumber(phone: string): string {
+  if (phone.length <= 4) return phone;
+  return phone.slice(0, 3) + '*'.repeat(phone.length - 6) + phone.slice(-3);
+}

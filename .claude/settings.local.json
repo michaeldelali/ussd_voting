@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm init:*)",
+      "Bash(mkdir:*)",
+      "Bash(yarn add mysql2)",
+      "Bash(yarn add:*)",
+      "Bash(npx prisma:*)"
+    ],
+    "deny": []
+  }
+}

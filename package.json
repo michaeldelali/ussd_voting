@@ -1,0 +1,45 @@
+{
+  "name": "borbor-carnival-voting",
+  "version": "1.0.0",
+  "description": "USSD Voting System for Borbor Carnival 25",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "db:seed": "npx ts-node --project tsconfig.scripts.json scripts/seed.ts",
+    "db:setup": "mysql -u carnival -p < scripts/create-tables.sql && npm run db:seed",
+    "create-user": "npx ts-node --project tsconfig.scripts.json scripts/create-user.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.11.1",
+    "@types/bcryptjs": "^2.4.0",
+    "@types/cors": "^2.8.0",
+    "@types/jsonwebtoken": "^9.0.0",
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.0.0",
+    "autoprefixer": "^10.4.0",
+    "axios": "^1.6.0",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "date-fns": "^3.0.0",
+    "dotenv": "^17.2.0",
+    "jsonwebtoken": "^9.0.0",
+    "lucide-react": "^0.292.0",
+    "next": "^15.3.5",
+    "pg": "^8.16.3",
+    "postcss": "^8.4.0",
+    "prisma": "^6.11.1",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "recharts": "^2.8.0",
+    "tailwindcss": "^3.3.0",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.15.4",
+    "eslint": "^8.0.0",
+    "eslint-config-next": "^14.0.0"
+  }
+}
