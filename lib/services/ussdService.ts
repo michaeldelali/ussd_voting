@@ -259,7 +259,7 @@ export class UssdService {
       "USERID": session.userId,
       "MSISDN": session.msisdn,
       "USERDATA": session.userData,
-      "MSG": `Confirm Payment:\nCandidate: ${transactionData.candidate_name}\nVotes: ${voteCount}\nAmount: GH₵${voteCount} \n \n1. Confirm \n2. Cancel`,
+      "MSG": `Confirm Payment:\nCandidate: ${transactionData.candidate_name}\nVotes: ${voteCount}\nAmount: GH₵${voteCount}\n1. Confirm \n2. Cancel`,
       "MSGTYPE": session.msgType || false
     };
   }
@@ -309,7 +309,7 @@ export class UssdService {
           "USERID": session.userId,
           "MSISDN": session.msisdn,
           "USERDATA": session.userData,
-          "MSG": `You will receive a notification to confirm payment or dial ${transactionData.network === 'MTN' ? '*170#' : '*110#'} to approve payment.`,
+          "MSG": `You will receive a notification to confirm payment or dial '*170#' : '*110#' to approve payment.`,
           "MSGTYPE": false
         };
 

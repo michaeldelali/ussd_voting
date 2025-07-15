@@ -27,13 +27,13 @@ export class PaymentService {
   }
 
   private networkMap = {
-      MTN: 'MTN',
-      VODAFONE: 'VDF',
-      TELECEL: 'VDF',
-      AIRTEL: 'ATL',
-      AIRTELTIGO: 'ATL',
-      TIGO: 'TGO',
-    } as const;
+    MTN: 'MTN',
+    VODAFONE: 'VDF',
+    TELECEL: 'VDF',
+    AIRTEL: 'ATL',
+    AIRTELTIGO: 'ATL',
+    TIGO: 'TGO',
+  } as const;
 
   async processVotePayment(session: UssdSession, vote: Vote): Promise<unknown> {
     const encodedCredentials = Buffer.from(
@@ -80,7 +80,7 @@ export class PaymentService {
 
       if (response.status === 200) {
         console.log('Vote payment request successful:', response.data);
-        
+
         // Update vote with transaction details
         await prisma.vote.update({
           where: { id: vote.id },
@@ -157,7 +157,7 @@ export class PaymentService {
 
       if (response.status === 200) {
         console.log('Donation payment request successful:', response.data);
-        
+
         // Update donation with transaction details
         await prisma.donation.update({
           where: { id: donation.id },
@@ -172,7 +172,7 @@ export class PaymentService {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       const errorResponse = (error as { response?: { data?: unknown } })?.response?.data;
       console.error('Donation payment error:', errorResponse || errorMessage);
-      
+
       // Update donation status to failed
       await prisma.donation.update({
         where: { id: donation.id },
@@ -181,7 +181,7 @@ export class PaymentService {
           transactionMessage: 'Payment processing failed'
         }
       });
-      
+
       throw error;
     }
   }
@@ -191,13 +191,13 @@ export class PaymentService {
       // console.log('Payment callback received:', callbackData);
 
       const merchantData = JSON.parse(callbackData.merchant_data || '{}');
-      const transactionStatus = callbackData.status || callbackData.transaction_status;
-      
+      const transactionStatus = callbackData.status?.toLocaleLowerCase() || callbackData.transaction_status?.toLocaleLowerCase;
+
       if (merchantData.type === 'vote' && merchantData.vote_id) {
         const vote = await prisma.vote.findUnique({
           where: { id: merchantData.vote_id }
         });
-        
+
         if (vote) {
           await prisma.vote.update({
             where: { id: vote.id },
@@ -206,38 +206,47 @@ export class PaymentService {
               transactionMessage: callbackData.message || callbackData.description || 'Payment processed'
             }
           });
-          
-          console.log(`Vote payment updated: ${vote.id} - ${transactionStatus}`);
-                  // Send SMS notifications
-        axios.post('https://sms.nalosolutions.com/smsbackend/Resl_Nalo/send-message/', {
-          "key": process.env.SMS_API_KEY,
-          "msisdn": callbackData.subscriber_number,
-          "message": `Thank you for voting ${merchantData?.vote_quantity} times for ${merchantData?.candidate_name}.`,
-          "sender_id": "Borborbor"
-        }).then((response) => {
-          console.log('SMS sent:', response.data);
 
-          // Send admin notification
-          axios.post('https://sms.nalosolutions.com/smsbackend/Resl_Nalo/send-message/', {
-            "key": process.env.SMS_API_KEY,
-            "msisdn": process.env.ADMIN_PHONE_NUMBER,
-            "message": `Vote payment successful: ${merchantData?.vote_quantity} votes for ${merchantData?.candidate_name} from ${callbackData?.subscriber_number} - Amount: GHS${callbackData?.total_amount}`,
-            "sender_id": "Borborbor"
-          }).then((response) => {
-            console.log('Admin SMS sent:', response.data);
-          }).catch((error) => {
-            console.error('Error sending admin SMS:', error);
-          });
-        }).catch((error) => {
-          console.error('Error sending SMS:', error);
-        });
+          if (transactionStatus === 'approved') {
+            console.log(`Vote payment updated: ${vote.id} - ${transactionStatus}`);
+            // Send SMS notifications
+            axios.post('https://sms.nalosolutions.com/smsbackend/Resl_Nalo/send-message/', {
+              "key": process.env.SMS_API_KEY,
+              "msisdn": callbackData.subscriber_number,
+              "message": `Thank you for voting ${merchantData?.vote_quantity} times for ${merchantData?.candidate_name}.`,
+              "sender_id": "Borborbor"
+            }).then((response) => {
+              console.log('SMS sent:', response.data);
 
+              // Send admin notification
+              axios.post('https://sms.nalosolutions.com/smsbackend/Resl_Nalo/send-message/', {
+                "key": process.env.SMS_API_KEY,
+                "msisdn": process.env.ADMIN_PHONE_NUMBER,
+                "message": `Vote payment successful: ${merchantData?.vote_quantity} votes for ${merchantData?.candidate_name} from ${callbackData?.subscriber_number} - Amount: GHS${callbackData?.total_amount}`,
+                "sender_id": "Borborbor"
+              }).then((response) => {
+                console.log('Admin SMS sent:', response.data);
+              }).catch((error) => {
+                console.error('Error sending admin SMS:', error);
+              });
+            }).catch((error) => {
+              console.error('Error sending SMS:', error);
+            });
+
+          } else {
+            axios.post('https://sms.nalosolutions.com/smsbackend/Resl_Nalo/send-message/', {
+              "key": process.env.SMS_API_KEY,
+              "msisdn": callbackData.subscriber_number,
+              "message": `Your vote for ${merchantData?.candidate_name} was not successful. Please try again.`,
+              "sender_id": "Borborbor"
+            })
+          }
         }
       } else if (merchantData.type === 'donation' && merchantData.donation_id) {
         const donation = await prisma.donation.findUnique({
           where: { id: merchantData.donation_id }
         });
-        
+
         if (donation) {
           await prisma.donation.update({
             where: { id: donation.id },
@@ -246,31 +255,44 @@ export class PaymentService {
               transactionMessage: callbackData.message || callbackData.description || 'Payment processed'
             }
           });
-          
-          console.log(`Donation payment updated: ${donation.id} - ${transactionStatus}`);
-                            // Send SMS notifications
-        axios.post('https://sms.nalosolutions.com/smsbackend/Resl_Nalo/send-message/', {
-          "key": process.env.SMS_API_KEY,
-          "msisdn": callbackData.subscriber_number,
-          "message": `Thank you for donating ${callbackData?.total_amount} to Borborbor Carnival 25.`,
-          "sender_id": "Borborbor"
-        }).then((response) => {
-          console.log('SMS sent:', response.data);
+          if (transactionStatus === 'approved') {
 
-          // Send admin notification
-          axios.post('https://sms.nalosolutions.com/smsbackend/Resl_Nalo/send-message/', {
-            "key": process.env.SMS_API_KEY,
-            "msisdn": process.env.ADMIN_PHONE_NUMBER,
-            "message": `Donation by: ${callbackData?.subscriber_number}. Amount dated ${callbackData?.total_amount}`,
-            "sender_id": "Borborbor"
-          }).then((response) => {
-            console.log('Admin SMS sent:', response.data);
-          }).catch((error) => {
-            console.error('Error sending admin SMS:', error);
-          });
-        }).catch((error) => {
-          console.error('Error sending SMS:', error);
-        });
+            console.log(`Donation payment updated: ${donation.id} - ${transactionStatus}`);
+            // Send SMS notifications
+            axios.post('https://sms.nalosolutions.com/smsbackend/Resl_Nalo/send-message/', {
+              "key": process.env.SMS_API_KEY,
+              "msisdn": callbackData.subscriber_number,
+              "message": `Thank you for donating ${callbackData?.total_amount} to Borborbor Carnival 25.`,
+              "sender_id": "Borborbor"
+            }).then((response) => {
+              console.log('SMS sent:', response.data);
+
+              // Send admin notification
+              axios.post('https://sms.nalosolutions.com/smsbackend/Resl_Nalo/send-message/', {
+                "key": process.env.SMS_API_KEY,
+                "msisdn": process.env.ADMIN_PHONE_NUMBER,
+                "message": `Donation by: ${callbackData?.subscriber_number}. Amount dated ${callbackData?.total_amount}`,
+                "sender_id": "Borborbor"
+              }).then((response) => {
+                console.log('Admin SMS sent:', response.data);
+              }).catch((error) => {
+                console.error('Error sending admin SMS:', error);
+              });
+            }).catch((error) => {
+              console.error('Error sending SMS:', error);
+            });
+          } else {
+            axios.post('https://sms.nalosolutions.com/smsbackend/Resl_Nalo/send-message/', {
+              "key": process.env.SMS_API_KEY,
+              "msisdn": callbackData.subscriber_number,
+              "message": `Your donation was not successful. Please try again.`,
+              "sender_id": "Borborbor"
+            }).then((response) => {
+              console.log('SMS sent:', response.data);
+            }).catch((error) => {
+              console.error('Error sending SMS:', error);
+            });
+          }
         }
       }
     } catch (error) {
