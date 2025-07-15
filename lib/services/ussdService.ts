@@ -107,15 +107,15 @@ export class UssdService {
         "USERID": session.userId,
         "MSISDN": session.msisdn,
         "USERDATA": session.userData,
-        "MSG": "Welcome to Borbor Carnival 25 \n \n1. Vote \n2. Donate",
-        "MSGTYPE": session.msgType || false
+        "MSG": "Welcome to Borbor Carnival 25\n\n1. Vote\n2. Donate",
+        "MSGTYPE": true
       };
     }
     return {
       "USERID": "",
       "MSISDN": "",
       "USERDATA": "",
-      "MSG": "Welcome to Borbor Carnival 25 \n \n1. Vote \n2. Donate",
+      "MSG": "Welcome to Borbor Carnival 25\n\n1. Vote\n2. Donate",
       "MSGTYPE": true
     };
   }
@@ -138,7 +138,7 @@ export class UssdService {
           "MSISDN": session.msisdn,
           "USERDATA": session.userData,
           "MSG": "Enter group code number:",
-          "MSGTYPE": session.msgType || false
+          "MSGTYPE": true
         };
 
       case '2':
@@ -166,7 +166,7 @@ export class UssdService {
         "MSISDN": session.msisdn,
         "USERDATA": session.userData,
         "MSG": "Invalid code. Please try again:",
-        "MSGTYPE": session.msgType || false
+        "MSGTYPE": true
       };
     }
 
@@ -184,7 +184,7 @@ export class UssdService {
         "MSISDN": session.msisdn,
         "USERDATA": session.userData,
         "MSG": "Invalid code. Please try again:",
-        "MSGTYPE": session.msgType || false
+        "MSGTYPE": true
       };
     }
 
@@ -208,7 +208,7 @@ export class UssdService {
       "MSISDN": session.msisdn,
       "USERDATA": session.userData,
       "MSG": `You have selected: ${candidate.name}\nEnter number of votes (GH₵1 per vote):`,
-      "MSGTYPE": session.msgType || false
+      "MSGTYPE": true
     };
   }
 
@@ -228,7 +228,7 @@ export class UssdService {
         "MSISDN": session.msisdn,
         "USERDATA": session.userData,
         "MSG": "Invalid number. Please enter a valid number of votes:",
-        "MSGTYPE": session.msgType || false
+        "MSGTYPE": true
       };
     }
 
@@ -238,7 +238,7 @@ export class UssdService {
         "MSISDN": session.msisdn,
         "USERDATA": session.userData,
         "MSG": "Maximum 100 votes allowed. Please enter a valid number:",
-        "MSGTYPE": session.msgType || false
+        "MSGTYPE": true
       };
     }
 
@@ -259,8 +259,8 @@ export class UssdService {
       "USERID": session.userId,
       "MSISDN": session.msisdn,
       "USERDATA": session.userData,
-      "MSG": `Confirm Payment:\nCandidate: ${transactionData.candidate_name} - Votes: ${voteCount}\nAmount: GH₵${voteCount}\n1. Confirm \n2. Cancel\n`,
-      "MSGTYPE": session.msgType || false
+      "MSG": `Confirm Payment:\nCandidate: ${transactionData.candidate_name}\nVotes: ${voteCount}\nAmount: GH₵${voteCount}\n1. Confirm\n2. Cancel`,
+      "MSGTYPE": true
     };
   }
 
@@ -370,7 +370,7 @@ export class UssdService {
       "MSISDN": session.msisdn,
       "USERDATA": session.userData,
       "MSG": "Enter donation amount (GH₵):",
-      "MSGTYPE": session.msgType || false
+      "MSGTYPE": true
     };
   }
 
@@ -383,17 +383,17 @@ export class UssdService {
         "MSISDN": session.msisdn,
         "USERDATA": session.userData,
         "MSG": "Invalid amount. Please enter a valid donation amount (GH₵):",
-        "MSGTYPE": session.msgType || false
+        "MSGTYPE": true
       };
     }
 
-    if (amount > 1000) {
+    if (amount > 100000) {
       return {
         "USERID": session.userId,
         "MSISDN": session.msisdn,
         "USERDATA": session.userData,
         "MSG": "Maximum donation amount is GH₵1000. Please enter a valid amount:",
-        "MSGTYPE": session.msgType || false
+        "MSGTYPE": true
       };
     }
 
@@ -413,8 +413,8 @@ export class UssdService {
       "USERID": session.userId,
       "MSISDN": session.msisdn,
       "USERDATA": session.userData,
-      "MSG": `Confirm Donation:\nAmount: GH₵${amount}\n \n1. Confirm \n2. Cancel`,
-      "MSGTYPE": session.msgType || false
+      "MSG": `Confirm Donation:\nAmount: GH₵${amount}\n\n1. Confirm\n2. Cancel`,
+      "MSGTYPE": true
     };
   }
 
@@ -442,7 +442,7 @@ export class UssdService {
           "MSISDN": session.msisdn,
           "USERDATA": session.userData,
           "MSG": "Invalid selection. Please choose:\n1. Confirm  \n2. Cancel",
-          "MSGTYPE": session.msgType || false
+          "MSGTYPE": true
         };
     }
   }
@@ -466,7 +466,7 @@ export class UssdService {
           "MSISDN": session.msisdn,
           "USERDATA": session.userData,
           "MSG": "CON Enter group code number:",
-          "MSGTYPE": session.msgType || false
+          "MSGTYPE": true
         };
       default:
         return this.mainMenu(session);
