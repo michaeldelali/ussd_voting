@@ -107,7 +107,7 @@ export class UssdService {
         "USERID": session.userId,
         "MSISDN": session.msisdn,
         "USERDATA": session.userData,
-        "MSG": "Welcome to Borbor Carnival 25\n1. Vote\n2. Donate",
+        "MSG": "Welcome to Borbor Carnival 25 \n \n1. Vote \n2. Donate",
         "MSGTYPE": session.msgType || false
       };
     }
@@ -115,7 +115,7 @@ export class UssdService {
       "USERID": "",
       "MSISDN": "",
       "USERDATA": "",
-      "MSG": "Welcome to Borbor Carnival 25\n1. Vote\n2. Donate",
+      "MSG": "Welcome to Borbor Carnival 25 \n \n1. Vote \n2. Donate",
       "MSGTYPE": true
     };
   }
@@ -259,7 +259,7 @@ export class UssdService {
       "USERID": session.userId,
       "MSISDN": session.msisdn,
       "USERDATA": session.userData,
-      "MSG": `Confirm Payment:\nCandidate: ${transactionData.candidate_name}\nVotes: ${voteCount}\nAmount: GH₵${voteCount}\n\n1. Confirm\n2. Cancel`,
+      "MSG": `Confirm Payment:\nCandidate: ${transactionData.candidate_name}\nVotes: ${voteCount}\nAmount: GH₵${voteCount} \n \n1. Confirm \n2. Cancel`,
       "MSGTYPE": session.msgType || false
     };
   }
@@ -413,7 +413,7 @@ export class UssdService {
       "USERID": session.userId,
       "MSISDN": session.msisdn,
       "USERDATA": session.userData,
-      "MSG": `Confirm Donation:\nAmount: GH₵${amount}\n\n1. Confirm\n2. Cancel`,
+      "MSG": `Confirm Donation:\nAmount: GH₵${amount}\n \n1. Confirm \n2. Cancel`,
       "MSGTYPE": session.msgType || false
     };
   }
@@ -442,7 +442,7 @@ export class UssdService {
           "USERID": session.userId,
           "MSISDN": session.msisdn,
           "USERDATA": session.userData,
-          "MSG": "CON Invalid selection. Please choose:\n1. Confirm\n2. Cancel",
+          "MSG": "Invalid selection. Please choose:\n1. Confirm  \n2. Cancel",
           "MSGTYPE": session.msgType || false
         };
     }
