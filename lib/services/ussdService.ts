@@ -259,7 +259,7 @@ export class UssdService {
       "USERID": session.userId,
       "MSISDN": session.msisdn,
       "USERDATA": session.userData,
-      "MSG": `Confirm Payment:\nCandidate: ${transactionData.candidate_name}\nVotes: ${voteCount}\nAmount: GH₵${voteCount}\n1. Confirm\n2. Cancel`,
+      "MSG":`Confirm Vote:\nCandidate: ${transactionData.candidate_name}- Votes: ${voteCount} -Amount: GH₵${voteCount}\n\n1. Confirm\n2. Close`,
       "MSGTYPE": true
     };
   }
