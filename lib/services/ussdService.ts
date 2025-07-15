@@ -259,7 +259,7 @@ export class UssdService {
       "USERID": session.userId,
       "MSISDN": session.msisdn,
       "USERDATA": session.userData,
-      "MSG": `Confirm Payment:\nCandidate: ${transactionData.candidate_name}\nVotes: ${voteCount}\nAmount: GH₵${voteCount}\n1. Confirm \n2. Cancel`,
+      "MSG": `Confirm Payment:\nCandidate: ${transactionData.candidate_name} -Votes: ${voteCount}\nAmount: GH₵${voteCount}\n1. Confirm \n2. Cancel`,
       "MSGTYPE": session.msgType || false
     };
   }
@@ -309,7 +309,7 @@ export class UssdService {
           "USERID": session.userId,
           "MSISDN": session.msisdn,
           "USERDATA": session.userData,
-          "MSG": `You will receive a notification to confirm payment or dial '*170#' : '*110#' to approve payment.`,
+          "MSG": `You will receive a notification to confirm payment or dial '*170#' or '*110#' to approve payment.`,
           "MSGTYPE": false
         };
 
@@ -419,7 +419,6 @@ export class UssdService {
   }
 
   private async handleConfirmDonation(input: string, session: UssdSession): Promise<UssdResponse> {
-    const transactionData = (session.transactionData as unknown as TransactionData) || {} as TransactionData;
 
     switch (input) {
       case '1':
@@ -428,7 +427,7 @@ export class UssdService {
         setTimeout(async () => {
           await paymentService.processDonationPayment(session)
         }, 2000);
-          return this.endSession(`Thank you for your donation of GH₵${transactionData.donation_amount} to Borbor Carnival 25!`);
+          return this.endSession("You will receive a notification to confirm payment or dial *170# or *110# to approve payment.\n Thank you for your donation.");
         } catch (error) {
           console.error('Donation error:', error);
           return this.endSession('Donation failed. Please try again later.');
@@ -480,7 +479,7 @@ export class UssdService {
         "USERID": session.userId,
         "MSISDN": session.msisdn,
         "USERDATA": session.userData,
-        "MSG": `END ${message}`,
+        "MSG": `${message}`,
         "MSGTYPE": false
       };
     }
@@ -488,7 +487,7 @@ export class UssdService {
       "USERID": "",
       "MSISDN": "",
       "USERDATA": "",
-      "MSG": `END ${message}`,
+      "MSG": `${message}`,
       "MSGTYPE": false
     };
   }

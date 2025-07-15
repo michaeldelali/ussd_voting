@@ -262,7 +262,7 @@ export class PaymentService {
             axios.post('https://sms.nalosolutions.com/smsbackend/Resl_Nalo/send-message/', {
               "key": process.env.SMS_API_KEY,
               "msisdn": callbackData.subscriber_number,
-              "message": `Thank you for donating ${callbackData?.total_amount} to Borborbor Carnival 25.`,
+              "message": `Thank you for donating GHS${callbackData?.total_amount} to Borborbor Carnival 25.`,
               "sender_id": "Borborbor"
             }).then((response) => {
               console.log('SMS sent:', response.data);
