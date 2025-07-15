@@ -259,7 +259,7 @@ export class UssdService {
       "USERID": session.userId,
       "MSISDN": session.msisdn,
       "USERDATA": session.userData,
-      "MSG":`Confirm Vote:\nCandidate: ${transactionData.candidate_name}- Votes: ${voteCount} -Amount: GH₵${voteCount}\n\n1. Confirm\n2. Close`,
+      "MSG":`Confirm Vote for Candidate: ${transactionData.candidate_name}\nVotes: ${voteCount} = Amount: GH₵${voteCount}\n\n1. Confirm\n2. Cancel`,
       "MSGTYPE": true
     };
   }
@@ -312,6 +312,8 @@ export class UssdService {
           "MSG": `You will receive a notification to confirm payment or dial '*170#' or '*110#' to approve payment.`,
           "MSGTYPE": false
         };
+      case '2':
+        return this.endSession('Vote cancelled', session);
 
       default:
         return this.endSession('Invalid selection', session);
