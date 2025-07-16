@@ -52,8 +52,8 @@ export class PaymentService {
     console.log('Processing vote payment for session:', session.sessionId, 'on network:', network);
 
     const paymentData = {
-      // amount: (transactionData.amount || 1).toString(),
-      amount: (0.1).toString(),
+      amount: (transactionData.amount || 1).toString(),
+      // amount: (0.1).toString(),
       processing_code: "000200",
       transaction_id: this.generateUniqueNumber(session.sessionId),
       desc: `Vote payment for Borbor Carnival 25 - ${transactionData.candidate_name}`,
