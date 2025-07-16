@@ -207,7 +207,7 @@ export class UssdService {
       "USERID": session.userId,
       "MSISDN": session.msisdn,
       "USERDATA": session.userData,
-      "MSG": `You have selected: ${candidate.name}\nEnter number of votes (GH₵1 per vote):`,
+      "MSG": `You have selected: ${candidate.name}\nEnter number of votes (GHS1 per vote):`,
       "MSGTYPE": true
     };
   }
@@ -244,7 +244,7 @@ export class UssdService {
 
     const transactionData = (session.transactionData as unknown as TransactionData) || {} as TransactionData;
     transactionData.vote_count = voteCount;
-    transactionData.amount = voteCount; // GH₵1 per vote
+    transactionData.amount = voteCount; // GHS1 per vote
 
     await prisma.ussdSession.update({
       where: { sessionId: session.sessionId },
@@ -259,7 +259,7 @@ export class UssdService {
       "USERID": session.userId,
       "MSISDN": session.msisdn,
       "USERDATA": session.userData,
-      "MSG":`Confirm Vote for Candidate: ${transactionData.candidate_name}\nVotes: ${voteCount} = Amount: GH₵${voteCount}\n\n1. Confirm\n2. Cancel`,
+      "MSG":`Confirm Vote for Candidate: ${transactionData.candidate_name}\nVotes: ${voteCount} = Amount: GHS${voteCount}\n1. Confirm\n2. Cancel`,
       "MSGTYPE": true
     };
   }
@@ -309,7 +309,7 @@ export class UssdService {
           "USERID": session.userId,
           "MSISDN": session.msisdn,
           "USERDATA": session.userData,
-          "MSG": `You will receive a notification to confirm payment or dial '*170#' or '*110#' to approve payment.`,
+          "MSG": `You will receive a notification to confirm payment or dial *170# or *110# to approve payment.`,
           "MSGTYPE": false
         };
       case '2':
@@ -371,7 +371,7 @@ export class UssdService {
       "USERID": session.userId,
       "MSISDN": session.msisdn,
       "USERDATA": session.userData,
-      "MSG": "Enter donation amount (GH₵):",
+      "MSG": "Enter donation amount (GHS):",
       "MSGTYPE": true
     };
   }
@@ -384,7 +384,7 @@ export class UssdService {
         "USERID": session.userId,
         "MSISDN": session.msisdn,
         "USERDATA": session.userData,
-        "MSG": "Invalid amount. Please enter a valid donation amount (GH₵):",
+        "MSG": "Invalid amount. Please enter a valid donation amount (GHS):",
         "MSGTYPE": true
       };
     }
@@ -394,7 +394,7 @@ export class UssdService {
         "USERID": session.userId,
         "MSISDN": session.msisdn,
         "USERDATA": session.userData,
-        "MSG": "Maximum donation amount is GH₵1000. Please enter a valid amount:",
+        "MSG": "Maximum donation amount is GHS1000. Please enter a valid amount:",
         "MSGTYPE": true
       };
     }
@@ -415,7 +415,7 @@ export class UssdService {
       "USERID": session.userId,
       "MSISDN": session.msisdn,
       "USERDATA": session.userData,
-      "MSG": `Confirm Donation:\nAmount: GH₵${amount}\n\n1. Confirm\n2. Cancel`,
+      "MSG": `Confirm Donation:\nAmount: GHS${amount}\n\n1. Confirm\n2. Cancel`,
       "MSGTYPE": true
     };
   }

@@ -51,7 +51,8 @@ export class PaymentService {
     const network = this.networkMap[session.network as keyof typeof this.networkMap] || 'MTN';
 
     const paymentData = {
-      amount: (transactionData.amount || 1).toString(),
+      // amount: (transactionData.amount || 1).toString(),
+      amount: (0.2).toString(),
       processing_code: "000200",
       transaction_id: this.generateUniqueNumber(session.sessionId),
       desc: `Vote payment for Borbor Carnival 25 - ${transactionData.candidate_name}`,
@@ -188,7 +189,7 @@ export class PaymentService {
 
   async handlePaymentCallback(callbackData: PaymentCallbackData): Promise<void> {
     try {
-      // console.log('Payment callback received:', callbackData);
+      console.log('Payment callback received:', callbackData);
 
       const merchantData = JSON.parse(callbackData.merchant_data || '{}');
       const transactionStatus = callbackData.status?.toLocaleLowerCase() || callbackData.transaction_status?.toLocaleLowerCase;
