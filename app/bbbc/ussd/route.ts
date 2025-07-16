@@ -6,7 +6,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { SESSIONID, USERID, MSISDN, USERDATA, MSGTYPE, NETWORK } = body;
 
-    console.log('USSD Request:', body);
+    // console.log('USSD Request:', body);
 
     // Validate required fields
     if (!SESSIONID || !MSISDN) {

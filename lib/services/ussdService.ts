@@ -266,6 +266,8 @@ export class UssdService {
 
   private async handleConfirmVotePayment(input: string, session: UssdSession): Promise<UssdResponse> {
     const transactionData = (session.transactionData as unknown as TransactionData) || {} as TransactionData;
+    // console.log("Transaction Data:", transactionData);
+    // console.log("Session Data:", session);
 
     switch (input) {
       case '1':
@@ -309,7 +311,7 @@ export class UssdService {
           "USERID": session.userId,
           "MSISDN": session.msisdn,
           "USERDATA": session.userData,
-          "MSG": `You will receive a notification to confirm payment or dial ${transactionData.network === 'MTN' ? '*170#' : '*110#'} to approve payment.`,
+          "MSG": `You will receive a notification to confirm payment or dial ${session.network === 'MTN' ? '*170#' : '*110#'} to approve payment.`,
           "MSGTYPE": false
         };
       case '2':
