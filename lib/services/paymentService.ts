@@ -49,10 +49,11 @@ export class PaymentService {
 
     const transactionData = (session.transactionData as unknown as TransactionData) || {} as TransactionData;
     const network = this.networkMap[session.network as keyof typeof this.networkMap] || 'MTN';
+    console.log('Processing vote payment for session:', session.sessionId, 'on network:', network);
 
     const paymentData = {
-      amount: (transactionData.amount || 1).toString(),
-      // amount: (0.2).toString(),
+      // amount: (transactionData.amount || 1).toString(),
+      amount: (0.1).toString(),
       processing_code: "000200",
       transaction_id: this.generateUniqueNumber(session.sessionId),
       desc: `Vote payment for Borbor Carnival 25 - ${transactionData.candidate_name}`,

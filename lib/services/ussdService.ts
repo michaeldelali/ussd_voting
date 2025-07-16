@@ -309,7 +309,7 @@ export class UssdService {
           "USERID": session.userId,
           "MSISDN": session.msisdn,
           "USERDATA": session.userData,
-          "MSG": `You will receive a notification to confirm payment or dial *170# or *110# to approve payment.`,
+          "MSG": `You will receive a notification to confirm payment or dial ${transactionData.network === 'MTN' ? '*170#' : '*110#'} to approve payment.`,
           "MSGTYPE": false
         };
       case '2':
