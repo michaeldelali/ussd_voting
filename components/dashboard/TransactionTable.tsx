@@ -166,7 +166,7 @@ export function TransactionTable({
           <tbody className="bg-white divide-y divide-gray-200">
             {transactions.map((transaction) => (
               <>
-                <tr key={`${transaction.type}-${transaction.id}`} className="hover:bg-gray-50 transition-colors">
+                <tr key={`${transaction.type}-${transaction.id}-${transaction.transaction_id}`} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap">
                     {getTypeBadge(transaction.type)}
                   </td>
@@ -207,7 +207,7 @@ export function TransactionTable({
                   </td>
                 </tr>
                 {expandedRow === transaction.id && (
-                  <tr className="bg-gray-50">
+                  <tr key={`${transaction.type}-${transaction.id}-${transaction.transaction_id}-details`} className="bg-gray-50">
                     <td colSpan={7} className="px-6 py-4">
                       <div className="bg-white rounded-lg p-4 border border-gray-200">
                         <h4 className="font-medium text-gray-900 mb-3">Transaction Details</h4>
@@ -267,7 +267,7 @@ export function TransactionTable({
       <div className="lg:hidden">
         <div className="space-y-4 p-4">
           {transactions.map((transaction) => (
-            <div key={`mobile-${transaction.type}-${transaction.id}`} className="bg-gray-50 rounded-lg p-4 space-y-3">
+            <div key={`mobile-${transaction.type}-${transaction.id}-${transaction.transaction_id}`} className="bg-gray-50 rounded-lg p-4 space-y-3">
               {/* Header Row */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">

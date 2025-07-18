@@ -124,8 +124,9 @@ useEffect(() => {
   checkAuth();
 }, [checkAuth]);
 
-const fetchData = useCallback(async () => {
+const fetchData = useCallback(async (page?: number) => {
   try {
+    const currentPage = page ?? pagination.current_page;
     const dateParams =
       dateRange.startDate && dateRange.endDate
         ? `?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`
@@ -136,7 +137,7 @@ const fetchData = useCallback(async () => {
         fetch(`/api/analytics/votes${dateParams}`),
         fetch(`/api/analytics/donations${dateParams}`),
         fetch(
-          `/api/analytics/transactions?status=${statusFilter}&type=${typeFilter}&page=${pagination.current_page}&limit=${pagination.per_page}`
+          `/api/analytics/transactions?status=${statusFilter}&type=${typeFilter}&page=${currentPage}&limit=${pagination.per_page}`
         ),
       ]);
 
@@ -167,8 +168,8 @@ const fetchData = useCallback(async () => {
   dateRange.endDate,
   statusFilter,
   typeFilter,
-  pagination.current_page,
   pagination.per_page,
+  pagination.current_page,
 ]);
 
 useEffect(() => {
@@ -176,7 +177,7 @@ useEffect(() => {
     fetchData();
 
     if (autoRefresh) {
-      const interval = setInterval(fetchData, 30000);
+      const interval = setInterval(() => fetchData(), 30000);
       return () => clearInterval(interval);
     }
   }
@@ -192,16 +193,19 @@ useEffect(() => {
 
   const handlePageChange = (page: number) => {
     setPagination(prev => ({ ...prev, current_page: page }));
+    fetchData(page);
   };
 
   const handleStatusFilter = (status: string) => {
     setStatusFilter(status);
     setPagination(prev => ({ ...prev, current_page: 1 }));
+    // fetchData will be called by useEffect when statusFilter changes
   };
 
   const handleTypeFilter = (type: string) => {
     setTypeFilter(type);
     setPagination(prev => ({ ...prev, current_page: 1 }));
+    // fetchData will be called by useEffect when typeFilter changes
   };
 
   const handleDateRangeChange = (field: 'startDate' | 'endDate', value: string) => {

@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
           }
         },
         where: voteWhereConditions,
-        take: type === 'votes' ? limit : Math.ceil(limit / 2),
+        take: type === 'votes' ? limit : undefined, // Get all for mixed sorting
         skip: type === 'votes' ? offset : 0,
         orderBy: {
           createdAt: 'desc'
@@ -86,7 +86,7 @@ export async function GET(request: NextRequest) {
       // Get donation transactions
       const donationQuery = await prisma.donation.findMany({
         where: donationWhereConditions,
-        take: type === 'donations' ? limit : Math.ceil(limit / 2),
+        take: type === 'donations' ? limit : undefined, // Get all for mixed sorting
         skip: type === 'donations' ? offset : 0,
         orderBy: {
           createdAt: 'desc'
