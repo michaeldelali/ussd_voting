@@ -153,7 +153,7 @@ export class PaymentService {
       subscriber_number: session.msisdn,
       "r-switch": network,
       callback_url: process.env.PAYMENT_CALLBACK_URL,
-      reference: "Borbor Carnival 25 Donation",
+      reference: "Donation to VERP",
       merchant_data: JSON.stringify({
         session_id: session.sessionId,
         donation_id: donation.id,
