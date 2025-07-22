@@ -16,6 +16,7 @@ interface PaymentCallbackData {
   merchant_data?: string;
   subscriber_number?: string;
   total_amount?: string;
+  transaction_id?: string;
 }
 
 export class PaymentService {
@@ -81,17 +82,29 @@ export class PaymentService {
       );
 
       if (response.status === 200) {
-        console.log('Vote payment request successful:', response.data);
+        const paymentData = response.data;
 
-        // Update vote with transaction details
-        await prisma.vote.update({
-          where: { id: vote.id },
-          data: {
-            transactionId: paymentData.transaction_id,
-            transactionMessage: 'Payment request sent successfully'
-          }
-        });
-        return response.data;
+        console.log('Vote payment request successful:', paymentData);
+
+        if (paymentData.status !== 'failed') {     // Update vote with transaction details
+          await prisma.vote.update({
+            where: { id: vote.id },
+            data: {
+              transactionId: paymentData.transaction_id,
+              transactionMessage: 'Payment request sent successfully'
+            }
+          });
+        } else {
+          await prisma.vote.update({
+            where: { id: vote.id },
+            data: {
+              transactionId: paymentData.transaction_id,
+              transactionMessage: paymentData.reason || 'Payment request failed',
+            }
+          });
+        }
+
+        return paymentData;
 
       } else {
         throw new Error(`Payment failed with status: ${response.status}`);
@@ -215,7 +228,7 @@ export class PaymentService {
             axios.post('https://sms.nalosolutions.com/smsbackend/Resl_Nalo/send-message/', {
               "key": process.env.SMS_API_KEY,
               "msisdn": callbackData.subscriber_number,
-              "message": `Thank you for voting ${merchantData?.vote_quantity} times for ${merchantData?.candidate_name}.`,
+              "message": `Thank you for voting ${merchantData?.vote_quantity} times for ${merchantData?.candidate_name}. Total Amount: GHS${callbackData?.total_amount} Transaction ID: ${callbackData?.transaction_id || vote?.id}`,
               "sender_id": "Borborbor"
             }).then((response) => {
               console.log('SMS sent:', response.data);
@@ -224,7 +237,7 @@ export class PaymentService {
               axios.post('https://sms.nalosolutions.com/smsbackend/Resl_Nalo/send-message/', {
                 "key": process.env.SMS_API_KEY,
                 "msisdn": process.env.ADMIN_PHONE_NUMBER,
-                "message": `Vote payment successful: ${merchantData?.vote_quantity} votes for ${merchantData?.candidate_name} from ${callbackData?.subscriber_number} - Amount: GHS${callbackData?.total_amount}`,
+                "message": `Vote payment successful: ${merchantData?.vote_quantity} votes for ${merchantData?.candidate_name} from ${callbackData?.subscriber_number} - Amount: GHS${callbackData?.total_amount}. Transaction ID: ${callbackData?.transaction_id || vote?.id}`,
                 "sender_id": "Borborbor"
               }).then((response) => {
                 console.log('Admin SMS sent:', response.data);
@@ -239,7 +252,7 @@ export class PaymentService {
             axios.post('https://sms.nalosolutions.com/smsbackend/Resl_Nalo/send-message/', {
               "key": process.env.SMS_API_KEY,
               "msisdn": callbackData.subscriber_number,
-              "message": `Your vote for ${merchantData?.candidate_name} was not successful. Please try again.`,
+              "message": `Your vote for ${merchantData?.candidate_name} was not successful. Please try again. Transaction ID: ${callbackData?.transaction_id || vote?.id}`,
               "sender_id": "Borborbor"
             })
           }
@@ -264,7 +277,7 @@ export class PaymentService {
             axios.post('https://sms.nalosolutions.com/smsbackend/Resl_Nalo/send-message/', {
               "key": process.env.SMS_API_KEY,
               "msisdn": callbackData.subscriber_number,
-              "message": `Thank you for donating GHS${callbackData?.total_amount} to Borborbor Carnival 25.`,
+              "message": `Thank you for donating GHS${callbackData?.total_amount} to Borborbor Carnival 25. Your support is greatly appreciated! Transaction ID: ${callbackData?.transaction_id || donation?.id}`,
               "sender_id": "Borborbor"
             }).then((response) => {
               console.log('SMS sent:', response.data);
@@ -273,7 +286,7 @@ export class PaymentService {
               axios.post('https://sms.nalosolutions.com/smsbackend/Resl_Nalo/send-message/', {
                 "key": process.env.SMS_API_KEY,
                 "msisdn": process.env.ADMIN_PHONE_NUMBER,
-                "message": `Donation by: ${callbackData?.subscriber_number}. Amount dated ${callbackData?.total_amount}`,
+                "message": `Donation by: ${callbackData?.subscriber_number}. Amount dated ${callbackData?.total_amount} `,
                 "sender_id": "Borborbor"
               }).then((response) => {
                 console.log('Admin SMS sent:', response.data);

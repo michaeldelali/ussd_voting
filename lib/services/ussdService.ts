@@ -1,4 +1,4 @@
-import { prisma, type UssdSession } from '../database/models';
+import { prisma, type UssdSession, type Vote } from '../database/models';
 import { paymentService } from './paymentService';
 
 interface UssdResponse {
@@ -107,7 +107,7 @@ export class UssdService {
         "USERID": session.userId,
         "MSISDN": session.msisdn,
         "USERDATA": session.userData,
-        "MSG": "Welcome to Borbor Carnival 25\n\n1. Vote\n2. Donate",
+        "MSG": "Welcome to Borbor Carnival 25\n\n1. Vote\n2. Donate to VERP",
         "MSGTYPE": true
       };
     }
@@ -264,21 +264,21 @@ export class UssdService {
     };
   }
 
-  private async handleConfirmVotePayment(input: string, session: UssdSession): Promise<UssdResponse> {
+private async handleConfirmVotePayment(input: string, session: UssdSession): Promise<UssdResponse> {
     const transactionData = (session.transactionData as unknown as TransactionData) || {} as TransactionData;
-    // console.log("Transaction Data:", transactionData);
-    // console.log("Session Data:", session);
 
     switch (input) {
       case '1':
+        // Update session state first
         await prisma.ussdSession.update({
           where: { sessionId: session.sessionId },
           data: {
-            menuState: 'ENTER_MOMO_PIN',
+            menuState: 'PAYMENT_PROCESSING',
             prevMenuState: 'CONFIRM_VOTE_PAYMENT'
           }
         });
 
+        // Create vote record
         const vote = await prisma.vote.create({
           data: {
             candidateId: transactionData.candidate_id || 0,
@@ -291,22 +291,10 @@ export class UssdService {
           }
         });
 
-        setTimeout(async () => {
-          await paymentService.processVotePayment(session, vote)
-            .catch(async (error) => {
-              console.error('Payment error:', error);
+        // Start background payment processing (fire-and-forget)
+        this.processPaymentInBackground(session, vote);
 
-              await prisma.vote.update({
-                where: { id: vote.id },
-                data: {
-                  transactionStatus: 'failed',
-                  transactionMessage: 'Payment processing failed'
-                }
-              });
-
-            });
-        }, 2000);
-
+        // Immediately terminate USSD session
         return {
           "USERID": session.userId,
           "MSISDN": session.msisdn,
@@ -314,13 +302,43 @@ export class UssdService {
           "MSG": `You will receive a notification to confirm payment or dial ${session.network === 'MTN' ? '*170#' : '*110#'} to approve payment.`,
           "MSGTYPE": false
         };
+
       case '2':
         return this.endSession('Vote cancelled', session);
 
       default:
         return this.endSession('Invalid selection', session);
     }
-  }
+}
+
+private processPaymentInBackground(session: UssdSession, vote: Vote): void {
+    // Use setTimeout for the 2-second delay
+    setTimeout(async () => {
+        try {
+            await paymentService.processVotePayment(session, vote);
+            
+            // Optional: Log success or send notification
+            console.log(`Payment processed successfully for vote ID: ${vote.id}`);
+            
+        } catch (error) {
+            console.error('Payment processing failed:', error);
+            
+            // Update vote status to failed
+            await prisma.vote.update({
+                where: { id: vote.id },
+                data: {
+                    transactionStatus: 'failed',
+                    transactionMessage: 'Payment processing failed'
+                }
+            }).catch(dbError => {
+                console.error('Failed to update vote status:', dbError);
+            });
+            
+            // Send failure notification to user via SMS/Push
+            // await notificationService.sendPaymentFailureNotification(session.msisdn);
+        }
+    }, 2000);
+}
 
   private async handleEnterMomoPin(input: string, session: UssdSession): Promise<UssdResponse> {
 
